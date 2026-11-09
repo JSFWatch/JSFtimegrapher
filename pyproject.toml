@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opentimegrapher"
+version = "0.1.0"
+description = "Free, open-source timegrapher for mechanical watches"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+live = ["sounddevice>=0.4"]
+ui = ["PySide6>=6.5", "pyqtgraph>=0.13"]
+
+[project.scripts]
+otg = "opentimegrapher.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
