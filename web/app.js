@@ -65,7 +65,8 @@ function describeCal(cal) {
   if (cal.method === "manual") return `Manual correction ${fmtPpm(cal.ppm)}, results flagged`;
   const d = Math.floor(ageDays(cal));
   const when = d < 1 ? "today" : d === 1 ? "yesterday" : `${d} days ago`;
-  return `Calibrated ${when} with ${cal.method === "pps" ? "GPS" : "quartz"}, ${fmtPpm(cal.ppm)}`;
+  const how = { pps: "GPS", quartz: "quartz", clock: "device clock" }[cal.method] || cal.method;
+  return `Calibrated ${when} with ${how}, ${fmtPpm(cal.ppm)}`;
 }
 const fmtPpm = (p) => `${p < 0 ? MINUS : "+"}${Math.abs(p).toFixed(2)} ppm`;
 const signed = (v, d = 1) => `${v < 0 ? MINUS : "+"}${Math.abs(v).toFixed(d)}`;
@@ -108,7 +109,7 @@ async function openInput(deviceId) {
   const mute = state.ctx.createGain();
   mute.gain.value = 0;
   state.source.connect(state.node).connect(mute).connect(state.ctx.destination);
-  state.node.port.onmessage = (e) => onBlock(e.data[0], e.data[1]);
+  state.node.port.onmessage = (e) => onBlock(e.data[0], e.data[1], e.data[2], e.data[3]);
   state.dev = {
     id: settings.deviceId || deviceId || "default",
     label: track.label || "Audio input",
@@ -134,7 +135,7 @@ function startDemo() {
   }, 40);
 }
 
-function onBlock(ch0, ch1) {
+function onBlock(ch0, ch1, frame, wallMs) {
   let peak = 0;
   for (let i = 0; i < ch0.length; i += 4) peak = Math.max(peak, Math.abs(ch0[i]));
   if (ch1 && state.wizardChannel === 1) {
@@ -142,7 +143,7 @@ function onBlock(ch0, ch1) {
     for (let i = 0; i < ch1.length; i += 4) peak = Math.max(peak, Math.abs(ch1[i]));
   }
   state.peak = Math.max(peak, (state.peak || 0) * 0.85);
-  if (state.sink) state.sink(ch0, ch1);
+  if (state.sink) state.sink(ch0, ch1, frame, wallMs);
 }
 
 async function listDevices(selectedId) {
@@ -292,10 +293,19 @@ $("#btn-step2").addEventListener("click", () => {
   $("#signal-hint").textContent = wiz.method === "pps"
     ? "Connect the GPS module's 1 PPS output to input 2 and wait for a position fix."
     : "Place the quartz watch on the pickup, crown facing the same way you'll test watches.";
+  if (wiz.method === "clock") {
+    // No reference signal to check: go straight to the timed run.
+    keepAwake(true);
+    startClockRun();
+    gotoStep(4);
+    $$("#steps li")[2].className = "done";
+    return;
+  }
+  keepAwake(true);
   startSignalCheck();
   gotoStep(3);
 });
-$("#btn-back3").addEventListener("click", () => { state.sink = null; gotoStep(2); });
+$("#btn-back3").addEventListener("click", () => { state.sink = null; keepAwake(false); gotoStep(2); });
 
 function feed(tracker, ch0, ch1) {
   const block = wiz.channel === 1 ? ch1 : ch0;
@@ -316,7 +326,53 @@ function startSignalCheck() {
 }
 
 $("#btn-step3").addEventListener("click", () => { startCalibrationRun(); gotoStep(4); });
-$("#btn-cancel4").addEventListener("click", () => { state.sink = null; gotoStep(2); });
+$("#btn-cancel4").addEventListener("click", () => { state.sink = null; keepAwake(false); gotoStep(2); });
+
+// Keep the screen on during calibration where the browser allows it.
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && "wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch { wakeLock = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && wiz.step >= 3 && wiz.step <= 4) keepAwake(true);
+});
+
+function startClockRun() {
+  const sr = state.dev.sr;
+  const tr = new E.ClockTracker(sr);
+  const needed = E.MIN_CAL_SECONDS.clock;
+  let lastEval = 0, hiddenSeen = false;
+  $("#cal-ppm").textContent = "measuring";
+  $("#cal-spread").textContent = "measuring";
+  $("#cal-progress").style.width = "0%";
+  $("#cal-note").textContent = "Keep this page open with the screen on. Nothing needs to be on the pickup.";
+  state.sink = (c0, c1, frame, wallMs) => {
+    if (frame === undefined || wallMs === undefined) return;
+    tr.add(frame, wallMs);
+    if (document.hidden) hiddenSeen = true;
+    const now = performance.now();
+    if (now - lastEval < 1000) return;
+    lastEval = now;
+    const ev = E.evaluateClockCalibration(tr);
+    $("#cal-elapsed").textContent = `${fmtClock(tr.elapsed())} of ${fmtClock(needed)}`;
+    $("#cal-progress").style.width = `${Math.min(100, (ev.duration / needed) * 100)}%`;
+    if (Number.isFinite(ev.ppm)) $("#cal-ppm").textContent = fmtPpm(ev.ppm);
+    $("#cal-spread").textContent = Number.isFinite(ev.sePpm)
+      ? `\u00b1${ev.sePpm.toFixed(2)} ppm ${ev.stable ? "(steady)" : "(settling)"}`
+      : "measuring";
+    $("#cal-note").textContent = hiddenSeen
+      ? "This page was in the background for a while. That's handled, but keep it open and the screen on so the run finishes."
+      : ev.duration >= needed && !ev.stable
+        ? "Long enough, waiting for the reading to settle. The device's network time may have been corrected during the run."
+        : "Keep this page open with the screen on. Nothing needs to be on the pickup.";
+    if (ev.valid) finishCalibration({ ...ev, pulses: ev.pulses });
+  };
+}
 
 function startCalibrationRun() {
   const sr = state.dev.sr;
@@ -356,7 +412,10 @@ function finishCalibration(ev) {
   $("#cal-result").textContent = `Correction ${fmtPpm(ev.ppm)}`;
   $("#cal-result-detail").textContent =
     `Without it, this input would misread every watch by ${signed(-ev.sdEquivalent, 2)} s/d. ` +
-    `Measured from ${ev.pulses} ${ev.method === "pps" ? "GPS" : "quartz"} pulses over ${fmtClock(ev.duration)}, steady to ${ev.spreadPpm.toFixed(2)} ppm.`;
+    (ev.method === "clock"
+      ? `Measured against this device's network time over ${fmtClock(ev.duration)}, uncertainty about \u00b1${Math.max(ev.sePpm, 0.5).toFixed(1)} ppm. A quartz watch or GPS gives a tighter result.`
+      : `Measured from ${ev.pulses} ${ev.method === "pps" ? "GPS" : "quartz"} pulses over ${fmtClock(ev.duration)}, steady to ${ev.spreadPpm.toFixed(2)} ppm.`);
+  keepAwake(false);
   gotoStep(5);
 }
 

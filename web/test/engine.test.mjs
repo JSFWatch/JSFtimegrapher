@@ -124,3 +124,41 @@ test("audio dropouts do not corrupt calibration", () => {
   assert.ok(cal.valid, JSON.stringify(cal));
   near(cal.ppm, -60 / (1 + 60e-6), 0.5, "ppm");
 });
+
+function clockRun({ cardPpm, seconds, jumpAt = null, dropEvery = null, seed = 3 }) {
+  // Simulate the worklet: a block every 2048 frames, stamped with a delayed wall clock.
+  let s = seed;
+  const rand = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const tr = new E.ClockTracker(SR);
+  const fps = SR * (1 + cardPpm * 1e-6);
+  let frame = 0, lost = 0;
+  for (let t = 0; t < seconds; t += 2048 / fps) {
+    frame += 2048;
+    if (dropEvery && Math.floor(t / dropEvery) !== Math.floor((t - 2048 / fps) / dropEvery)) lost += 128 * 3;
+    const delay = 0.003 + -Math.log(1 - rand()) * 0.006 + (rand() < 0.02 ? 0.08 : 0);
+    let wall = t + delay;
+    if (jumpAt !== null && t > jumpAt) wall += 0.2; // network time correction
+    tr.add(frame - lost, wall * 1000);
+  }
+  return tr;
+}
+
+test("device clock calibration recovers the sound card error", () => {
+  const tr = clockRun({ cardPpm: 47, seconds: 1900 });
+  const cal = E.evaluateClockCalibration(tr);
+  assert.ok(cal.valid, JSON.stringify({ ...cal, chunkPpm: cal.chunkPpm }));
+  near(cal.ppm, -47 / (1 + 47e-6), 0.2, "ppm");
+});
+
+test("device clock calibration survives a network time jump and dropouts", () => {
+  const tr = clockRun({ cardPpm: -30, seconds: 1900, jumpAt: 700, dropEvery: 300 });
+  const cal = E.evaluateClockCalibration(tr);
+  assert.ok(cal.segments >= 5, `segments ${cal.segments}`);
+  assert.ok(cal.valid, JSON.stringify(cal));
+  near(cal.ppm, 30 / (1 - 30e-6), 0.2, "ppm");
+});
+
+test("device clock calibration is not valid before 30 minutes", () => {
+  const cal = E.evaluateClockCalibration(clockRun({ cardPpm: 20, seconds: 600 }));
+  assert.equal(cal.valid, false);
+});

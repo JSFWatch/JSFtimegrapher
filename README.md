@@ -15,7 +15,7 @@ cd web && python3 -m http.server 8000
 # open http://localhost:8000 (localhost counts as secure, so the mic works)
 ```
 
-`web/engine.js` is a line-for-line JavaScript port of the Python engine and passes the same accuracy gate (`node --test web/test/*.test.mjs`). It also survives audio dropouts: a sudden timing jump starts a new segment instead of corrupting the reading or the calibration.
+`web/engine.js` is a JavaScript port of the Python engine and passes the same accuracy gate (`node --test web/test/*.test.mjs`). It also survives audio dropouts: a sudden timing jump starts a new segment instead of corrupting the reading or the calibration.
 
 ## Why calibration is mandatory
 
@@ -25,6 +25,7 @@ A sound card's clock is rarely exact. Every 1 ppm of clock error adds 0.0864 s/d
 | --- | --- | --- |
 | Quartz watch | Any quartz watch on the pickup (enter its known s/d offset if you have it) | 10 min minimum, must hold within 0.5 ppm |
 | GPS 1 PPS | A GPS module's 1 PPS output into input channel 2 | About 60 s |
+| Device clock (web app) | Nothing. Uses the phone or computer's network-synced clock | 30 min minimum, screen on. Less certain than quartz or GPS |
 
 Calibrations are stored per audio device and sample rate. Changing either forces a new one, and you'll be prompted after 30 days. A manual ppm override exists for advanced use, and every result that uses it is flagged.
 

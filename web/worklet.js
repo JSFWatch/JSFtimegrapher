@@ -1,5 +1,6 @@
 // Audio capture worklet: batches raw samples (no browser processing) and posts
-// them to the page, two channels, about every 43 ms at 48 kHz.
+// them to the page, two channels, about every 43 ms at 48 kHz, each block stamped
+// with its frame number and the wall clock for device-clock calibration.
 class OtgCapture extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -15,7 +16,9 @@ class OtgCapture extends AudioWorkletProcessor {
       this.buf[0][this.n] = a[i];
       this.buf[1][this.n] = b ? b[i] : 0;
       if (++this.n === this.size) {
-        this.port.postMessage([this.buf[0], this.buf[1]], [this.buf[0].buffer, this.buf[1].buffer]);
+        // Stamp the block in the audio thread: frame count at its last sample + wall clock.
+        this.port.postMessage([this.buf[0], this.buf[1], currentFrame + i + 1, Date.now()],
+                              [this.buf[0].buffer, this.buf[1].buffer]);
         this.buf = [new Float32Array(this.size), new Float32Array(this.size)];
         this.n = 0;
       }

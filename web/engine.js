@@ -10,7 +10,7 @@
 export const STANDARD_BPH = [14400, 18000, 19800, 21600, 25200, 28800, 36000, 43200];
 export const SECONDS_PER_DAY = 86400;
 export const STABILITY_LIMIT_PPM = 0.5;
-export const MIN_CAL_SECONDS = { quartz: 600, pps: 60 };
+export const MIN_CAL_SECONDS = { quartz: 600, pps: 60, clock: 1800 };
 export const CAL_MAX_AGE_DAYS = 30;
 
 // ---------------------------------------------------------------- DSP basics
@@ -634,6 +634,124 @@ export function evaluateCalibration(pulses, sr, method, referenceOffsetSd = 0, m
   return {
     method, ppm, sdEquivalent: ppm * 1e-6 * SECONDS_PER_DAY, pulses: n, duration, segments,
     spreadPpm, stable, valid: stable && duration >= needed, needed, chunkPpm,
+  };
+}
+
+// ---------------------------------------------------------------- device clock calibration
+//
+// No reference signal: compare the audio sample count against the device's
+// network-synced clock (Date.now) over a long run. Each audio block is stamped
+// in the audio thread. Stamps arrive with variable delay, so for every second
+// we keep only the least-delayed stamp, the same trick NTP uses. A jump in the
+// clock (a network time correction) or an audio dropout starts a new segment.
+
+export class ClockTracker {
+  constructor(sr) {
+    this.sr = sr;
+    this.bins = new Map();   // second -> least-delayed stamp {x, y, d}
+    this.last = null;
+    this.firstWall = null;
+  }
+  add(frame, wallMs) {
+    const x = frame / this.sr, y = wallMs / 1000;
+    if (this.firstWall === null) this.firstWall = y;
+    this.last = { x, y };
+    const key = Math.floor(x);
+    const d = y - x;
+    const cur = this.bins.get(key);
+    if (!cur || d < cur.d) this.bins.set(key, { x, y, d });
+  }
+  // Bins in order, split into segments wherever the clean offset jumps:
+  // an audio dropout or a network time correction.
+  points() {
+    const pts = [...this.bins.values()].sort((a, b) => a.x - b.x);
+    const TH = 0.003;
+    let seg = 0, recent = [];
+    for (let i = 0; i < pts.length; i++) {
+      if (recent.length < 3) { // still building this segment's baseline
+        pts[i].seg = seg;
+        recent = recent.filter((v) => Math.abs(v - pts[i].d) <= TH);
+        recent.push(pts[i].d);
+        continue;
+      }
+      const ref = median(recent);
+      const off = Math.abs(pts[i].d - ref) > TH;
+      // A jump is confirmed when the next second is off too; a single odd
+      // second (a slow stamp, or one that straddles the jump) is just an outlier.
+      const nextOff = i + 1 < pts.length && Math.abs(pts[i + 1].d - ref) > TH;
+      if (off && nextOff) { seg++; recent = []; }
+      pts[i].seg = seg;
+      if (!off || !recent.length) recent.push(pts[i].d);
+      if (recent.length > 7) recent.shift();
+    }
+    return pts;
+  }
+  get dropouts() { const p = this.points(); return p.length ? p[p.length - 1].seg : 0; }
+  elapsed() { return this.last && this.firstWall !== null ? this.last.y - this.firstWall : 0; }
+}
+
+// Pooled slope of wall time against audio time, one intercept per segment, robust to outliers.
+function clockFit(points) {
+  const bySeg = new Map();
+  for (const p of points) {
+    if (!bySeg.has(p.seg)) bySeg.set(p.seg, []);
+    bySeg.get(p.seg).push(p);
+  }
+  let keep = new Set(points);
+  let slope = 1, se = Infinity, resid = [];
+  for (let it = 0; it < 3; it++) {
+    let sxy = 0, sxx = 0, n = 0, segs = 0;
+    const segMeans = new Map();
+    for (const [s, ps] of bySeg) {
+      const k = ps.filter((p) => keep.has(p));
+      if (k.length < 10) continue;
+      const mx = k.reduce((a, p) => a + p.x, 0) / k.length;
+      const my = k.reduce((a, p) => a + p.y, 0) / k.length;
+      segMeans.set(s, [mx, my]);
+      for (const p of k) { sxy += (p.x - mx) * (p.y - my); sxx += (p.x - mx) ** 2; }
+      n += k.length; segs++;
+    }
+    if (!sxx) return null;
+    slope = sxy / sxx;
+    resid = [];
+    for (const p of points) {
+      const m = segMeans.get(p.seg);
+      if (m) resid.push([p, p.y - m[1] - slope * (p.x - m[0])]);
+    }
+    const kr = resid.filter(([p]) => keep.has(p)).map(([, r]) => r);
+    const mad = median(kr.map(Math.abs)) || 1e-6;
+    const sigma = Math.sqrt(kr.reduce((a, r) => a + r * r, 0) / Math.max(1, n - segs - 1));
+    se = sigma / Math.sqrt(sxx);
+    const nk = new Set(resid.filter(([, r]) => Math.abs(r) < 5 * 1.4826 * mad).map(([p]) => p));
+    if (nk.size === keep.size) break;
+    keep = nk;
+  }
+  return { ppm: (slope - 1) * 1e6, sePpm: se * 1e6, used: keep.size };
+}
+
+export function evaluateClockCalibration(tracker, minDuration = null) {
+  const pts = tracker.points();
+  const needed = minDuration ?? MIN_CAL_SECONDS.clock;
+  const spans = new Map();
+  for (const p of pts) {
+    const s = spans.get(p.seg);
+    spans.set(p.seg, s ? [s[0], p.x] : [p.x, p.x]);
+  }
+  const duration = [...spans.values()].reduce((a, [x, y]) => a + (y - x), 0);
+  const base = { method: "clock", pulses: pts.length, duration, segments: spans.size, needed };
+  const all = pts.length >= 30 ? clockFit(pts) : null;
+  if (!all) return { ...base, ppm: NaN, sdEquivalent: NaN, spreadPpm: Infinity, sePpm: Infinity, stable: false, valid: false, chunkPpm: [] };
+  // First half against second half: a clock being corrected mid-run shows up here.
+  const half = Math.floor(pts.length / 2);
+  const a = pts.length >= 120 ? clockFit(pts.slice(0, half)) : null;
+  const b = pts.length >= 120 ? clockFit(pts.slice(half)) : null;
+  const chunkPpm = a && b ? [a.ppm, b.ppm] : [];
+  const spreadPpm = chunkPpm.length === 2 ? Math.abs(a.ppm - b.ppm) : Infinity;
+  // 0.5 ppm is 0.04 s/d, far below what matters when regulating a watch.
+  const stable = spreadPpm <= 1.5 && all.sePpm <= 0.5;
+  return {
+    ...base, ppm: all.ppm, sdEquivalent: all.ppm * 1e-6 * SECONDS_PER_DAY, spreadPpm, sePpm: all.sePpm,
+    stable, valid: stable && duration >= needed, chunkPpm,
   };
 }
 

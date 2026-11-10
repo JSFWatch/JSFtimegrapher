@@ -45,4 +45,7 @@ Squarespace can't host JavaScript files like these, so the app lives on GitHub P
 - **Supported browsers:** current Chrome, Edge, Firefox and Safari on desktop. Phones work, but the built-in mic is a poor pickup.
 - **Calibration is per browser and per input.** A new laptop, browser or USB interface means a new calibration. Clearing site data erases saved calibrations.
 - **GPS calibration needs a stereo input** with the 1 PPS signal on input 2. Many cheap USB dongles are mono, so use the quartz method on those.
+- **Phones can't use their own GPS for calibration.** Browsers only get location from it, not the timing pulse. On a phone, use a quartz watch or the device clock method.
+- **Device clock method:** compares the sound card with the phone or computer's network time for 30 minutes. No reference watch needed, but it's only as good as the device's time sync, and it hasn't been checked against a reference on real phones yet. Use quartz or GPS when accuracy matters most. The screen is kept on during the run where the browser allows it.
+- **Phone mics are weak pickups.** They hear the room as much as the watch. A contact pickup on a USB-C or Lightning audio adapter works far better.
 - **The browser's audio processing is switched off** (echo cancellation, noise suppression, auto gain). If an OS-level "enhancement" is enabled for the device, turn it off too, since it can smear the tick sounds.
