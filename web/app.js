@@ -1,4 +1,4 @@
-// OpenTimegrapher web app: input, mandatory calibration wizard, live measuring.
+// JSF Timegrapher web app: input, mandatory calibration wizard, live measuring.
 import * as E from "./engine.js";
 
 const $ = (s) => document.querySelector(s);

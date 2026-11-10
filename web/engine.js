@@ -1,4 +1,4 @@
-// OpenTimegrapher engine, JavaScript port of src/opentimegrapher (same math, same tests).
+// JSF Timegrapher engine, JavaScript port of src/opentimegrapher (same math, same tests).
 // Pure ES module, no dependencies. Runs in the browser and in Node.
 //
 //   rate (s/d)  = 86400 * (T_nom / T_meas - 1)

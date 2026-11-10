@@ -6,10 +6,10 @@ Squarespace can't host JavaScript files like these, so the app lives on GitHub P
 
 ## 1. Publish on GitHub Pages
 
-1. Push this repo to GitHub, for example `github.com/<you>/opentimegrapher`.
+1. Push this repo to GitHub, for example `github.com/JSFWatch/JSFtimegrapher`.
 2. In the repo, open **Settings > Pages** and set **Source** to **GitHub Actions**.
 3. Push to `main`. The `pages` workflow tests the engine and publishes `web/`.
-4. The app is live at `https://<you>.github.io/opentimegrapher/`.
+4. The app is live at `https://jsfwatch.github.io/JSFtimegrapher/`.
 
 ## 2. Optional: give it your own address
 
@@ -18,7 +18,7 @@ Squarespace can't host JavaScript files like these, so the app lives on GitHub P
 1. Wherever jsfwatch.com's DNS is managed (Squarespace Domains if you bought it there), add a record:
    - Type: `CNAME`
    - Host: `timegrapher`
-   - Value: `<you>.github.io`
+   - Value: `jsfwatch.github.io`
 2. Create `web/CNAME` containing one line: `timegrapher.jsfwatch.com`, then commit and push.
 3. In **Settings > Pages**, enter `timegrapher.jsfwatch.com` as the custom domain and tick **Enforce HTTPS** once it's offered (DNS can take up to a day).
 
@@ -31,7 +31,7 @@ Squarespace can't host JavaScript files like these, so the app lives on GitHub P
 ```html
 <iframe
   src="https://timegrapher.jsfwatch.com/"
-  title="OpenTimegrapher"
+  title="JSF Timegrapher"
   allow="microphone"
   style="width:100%; height:1150px; border:0; display:block;">
 </iframe>

@@ -68,7 +68,7 @@ def _analyze(a: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="otg", description="OpenTimegrapher command line tools")
+    ap = argparse.ArgumentParser(prog="otg", description="JSF Timegrapher command line tools")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("synth", help="generate test audio with known values")

@@ -1,4 +1,4 @@
-# OpenTimegrapher
+# JSF Timegrapher
 
 Free, open-source timegrapher for mechanical watches. Measures **rate (s/d)**, **amplitude (deg)** and **beat error (ms)** from any USB audio pickup, on Windows, macOS and Linux.
 
@@ -19,7 +19,7 @@ cd web && python3 -m http.server 8000
 
 ## Why calibration is mandatory
 
-A sound card's clock is rarely exact. Every 1 ppm of clock error adds 0.0864 s/d of rate error, so a typical card that's 20 to 100 ppm off would misread a watch by roughly 2 to 9 s/d. OpenTimegrapher will not show rates until the audio device has a calibration from one of these:
+A sound card's clock is rarely exact. Every 1 ppm of clock error adds 0.0864 s/d of rate error, so a typical card that's 20 to 100 ppm off would misread a watch by roughly 2 to 9 s/d. JSF Timegrapher will not show rates until the audio device has a calibration from one of these:
 
 | Method | What you need | Run time |
 | --- | --- | --- |

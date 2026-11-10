@@ -1,4 +1,4 @@
-# Contributing to OpenTimegrapher
+# Contributing to JSF Timegrapher
 
 Thanks for helping. This is a **clean-room** project, which is what keeps it legal to publish. Every contributor agrees to the rules below.
 
@@ -15,7 +15,7 @@ Thanks for helping. This is a **clean-room** project, which is what keeps it leg
 
 Add this line to your first pull request description:
 
-> I confirm I have followed the OpenTimegrapher clean-room rules for this contribution.
+> I confirm I have followed the JSF Timegrapher clean-room rules for this contribution.
 
 ## Dev setup
 

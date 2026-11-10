@@ -1,6 +1,6 @@
-# OpenTimegrapher spec
+# JSF Timegrapher spec
 
-The full working spec (features, clean-room rules, hardware, DSP math, display modes, roadmap, testing, sources) lives in the project doc "OpenTimegrapher Spec, clean-room watch timing app". Paste its export here before the repo goes public so contributors have it.
+The full working spec (features, clean-room rules, hardware, DSP math, display modes, roadmap, testing, sources) lives in the project spec doc in Claude. Paste its export here before the repo goes public so contributors have it.
 
 ## Phase 1 status
 
