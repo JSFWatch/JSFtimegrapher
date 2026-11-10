@@ -127,7 +127,7 @@ legend { font-size: .875rem; font-weight: 600; margin-bottom: .5rem; }
 .tabs button[aria-selected="true"] { color: var(--graphite); border-bottom-color: var(--gold); }
 #view { display: block; width: 100%; height: 380px; }
 .legend { margin: 0; padding: .5rem 1rem .75rem; font-size: .8125rem; color: var(--muted); display: flex; gap: 1.25rem; align-items: center; }
-.legend .item { display: inline-flex; align-items: center; gap: .4rem; }
+.legend .item { display: inline-flex; align-items: center; gap: .4rem; padding-right: .25rem; overflow: visible; }
 .key { width: .75rem; height: .75rem; border-radius: 50%; display: inline-block; flex: none; }
 .key.tick { background: var(--ruby); }
 .key.tock { background: var(--sapphire); }
@@ -168,3 +168,13 @@ legend { font-size: .875rem; font-weight: 600; margin-bottom: .5rem; }
 .embedded .bar .status:not([hidden]) ~ * { display: none; }
 .embedded .start { padding-top: 1rem; }
 .embedded main { padding-top: .75rem; }
+
+/* Embedded: use the full width of the block on the page. */
+.embedded main { max-width: none; padding-left: clamp(1rem, 3vw, 3rem); padding-right: clamp(1rem, 3vw, 3rem); }
+.embedded .start { max-width: none; }
+.embedded h1 { max-width: 22ch; font-size: clamp(2.5rem, 6.5vw, 6.5rem); }
+.embedded .lede { max-width: 70ch; font-size: clamp(1.05rem, 1.4vw, 1.35rem); }
+.embedded .start .fine { max-width: 80ch; font-size: clamp(.875rem, 1.05vw, 1rem); }
+.embedded .wizard { max-width: 760px; }
+.embedded .workbench { grid-template-columns: 1fr 280px; }
+.embedded #view { height: clamp(380px, 32vw, 520px); }
