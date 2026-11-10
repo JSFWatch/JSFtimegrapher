@@ -494,7 +494,7 @@ $$(".tabs button").forEach((b) => b.addEventListener("click", () => {
 function frame() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   cx.clearRect(0, 0, w, h);
-  cx.font = `12px ${css("--font")}`;
+  cx.font = `12px ${css("--font")}`;  // Syne Mono
   return { w, h };
 }
 

@@ -28,7 +28,7 @@ jobs:
       - name: Stage site files
         run: |
           mkdir _site
-          cp web/index.html web/styles.css web/app.js web/engine.js web/worklet.js _site/
+          cp web/index.html web/styles.css web/app.js web/engine.js web/worklet.js web/logo.png web/favicon.png _site/
           [ -f web/CNAME ] && cp web/CNAME _site/ || true
       - uses: actions/upload-pages-artifact@v3
         with:
