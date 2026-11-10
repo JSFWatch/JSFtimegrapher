@@ -161,3 +161,10 @@ legend { font-size: .875rem; font-weight: 600; margin-bottom: .5rem; }
   #view { height: 300px; }
 }
 @media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
+
+/* Embedded in jsfwatch.com: the site already shows the logo, menu and footer. */
+.embedded .mark, .embedded .foot { display: none; }
+.embedded .bar { justify-content: flex-end; background: transparent; border-bottom: 0; padding-top: .5rem; padding-bottom: 0; }
+.embedded .bar .status:not([hidden]) ~ * { display: none; }
+.embedded .start { padding-top: 1rem; }
+.embedded main { padding-top: .75rem; }
