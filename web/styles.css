@@ -152,6 +152,9 @@ legend { font-size: .875rem; font-weight: 600; margin-bottom: .5rem; }
   .filegrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
+  .steps li { font-size: 0; }
+  .steps li::before { font-size: .8125rem; }
+  .steps li.current { font-size: .8125rem; }
   .bar { flex-wrap: wrap; }
   .status { text-align: left; }
   .readouts { grid-template-columns: 1fr; }

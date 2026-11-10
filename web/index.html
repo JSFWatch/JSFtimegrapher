@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JSF Timegrapher</title>
-  <meta name="description" content="Free timegrapher for mechanical watches. Measures rate, amplitude and beat error from a USB pickup, right in your browser.">
+  <meta name="description" content="Free timegrapher for mechanical watches. Measures rate, amplitude and beat error with your phone or a bench pickup, right in your browser.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne+Mono&display=swap" rel="stylesheet">
@@ -30,13 +30,14 @@
     <!-- Start -->
     <section class="screen" id="screen-start">
       <div class="start">
-        <h1>Time your watch on the bench.</h1>
-        <p class="lede">Rate, amplitude and beat error from a piezo pickup or microphone. Everything runs in this browser tab, nothing is uploaded.</p>
+        <h1>Time your watch on your phone or bench.</h1>
+        <p class="lede">Rate, amplitude and beat error from your phone's mic, a computer mic or a piezo pickup. It all runs in your browser, and nothing gets uploaded.</p>
         <div class="actions">
-          <button class="primary" id="btn-connect">Connect pickup</button>
+          <button class="primary" id="btn-connect">Start with my mic</button>
           <button class="secondary" id="btn-demo">Try the demo</button>
         </div>
-        <p class="fine">Your sound card's clock is checked before the first measurement. It takes about 10 minutes with a quartz watch, or 1 minute with a GPS timing signal.</p>
+        <p class="fine">On a phone, set the watch face up right on the mic, usually the small hole on the bottom edge, in a quiet room. A clip-on pickup works even better.</p>
+        <p class="fine">The first time on each phone or computer, it checks the mic's clock so readings are accurate. That takes about 30 minutes with no extra gear, 10 with a quartz watch, or 1 with a GPS timing signal. After that it's saved.</p>
         <p class="error" id="start-error" role="alert" hidden></p>
       </div>
     </section>
@@ -44,14 +45,14 @@
     <!-- Calibration wizard -->
     <section class="screen" id="screen-wizard" hidden>
       <div class="wizard">
-        <h2>Calibrate your sound card</h2>
-        <p class="lede">Every 1 ppm of clock error is 0.09 s/d of rate error, so measuring stays locked until this is done for this input.</p>
+        <h2>Check your mic's clock</h2>
+        <p class="lede">Every phone and sound card keeps slightly different time, and that shows up as rate error. This check runs once per device, and measuring unlocks when it's done.</p>
         <ol class="steps" id="steps">
           <li data-step="1">Input</li><li data-step="2">Reference</li><li data-step="3">Signal</li><li data-step="4">Measure</li><li data-step="5">Save</li>
         </ol>
 
         <div class="step" id="step-1">
-          <label for="device">Audio input</label>
+          <label for="device">Mic or audio input</label>
           <select id="device"></select>
           <p class="fine" id="device-info"></p>
           <div class="actions"><button class="primary" id="btn-step1">Use this input</button></div>
@@ -61,9 +62,9 @@
           <fieldset>
             <legend>Reference</legend>
             <label class="choice"><input type="radio" name="method" value="quartz" checked>
-              <span><strong>Quartz watch</strong>Any quartz watch on the pickup. At least 10 minutes.</span></label>
+              <span><strong>Quartz watch</strong>Any quartz watch on the mic or pickup. At least 10 minutes.</span></label>
             <label class="choice"><input type="radio" name="method" value="clock">
-              <span><strong>This device's clock</strong>No reference needed. Uses the network time on this phone or computer. About 30 minutes with the screen on. Less certain than a quartz watch.</span></label>
+              <span><strong>No extra gear</strong>Uses this phone or computer's own network time. About 30 minutes with the screen on. Slightly less precise than a quartz watch.</span></label>
             <label class="choice" id="choice-pps"><input type="radio" name="method" value="pps">
               <span><strong>GPS 1 PPS</strong><span id="pps-note">GPS module pulse output into input 2. About 1 minute.</span></span></label>
           </fieldset>
@@ -83,7 +84,7 @@
         </div>
 
         <div class="step" id="step-3" hidden>
-          <p id="signal-hint">Place the quartz watch on the pickup, crown facing the same way you'll test watches.</p>
+          <p id="signal-hint">Place the quartz watch on the mic or pickup, the same way you'll place watches you test.</p>
           <div class="meter" aria-hidden="true"><div class="meter-fill" id="meter"></div></div>
           <p class="readline"><span id="pulse-count">0</span> reference pulses heard in the last 5 s</p>
           <div class="actions"><button class="secondary" id="btn-back3">Back</button><button class="primary" id="btn-step3" disabled>Start calibration</button></div>
@@ -115,7 +116,7 @@
         <div class="readout"><span class="label">Amplitude</span><span class="value" id="r-amp">--</span><span class="unit">deg</span></div>
         <div class="readout"><span class="label">Beat error</span><span class="value" id="r-be">--</span><span class="unit">ms</span></div>
       </div>
-      <p class="meta" id="r-meta">Listening. Place the watch on the pickup.</p>
+      <p class="meta" id="r-meta">Listening. Place the watch on the mic or pickup.</p>
 
       <div class="workbench">
         <div class="display">
@@ -183,7 +184,7 @@
   </main>
 
   <footer class="foot">
-    <p>A free tool from <a href="https://www.jsfwatch.com/" target="_top">JSF Watch Co</a>. Open source under GPL-3.0. Calibration is stored in this browser only.</p>
+    <p>A free tool from <a href="https://www.jsfwatch.com/" target="_top">JSF Watch Co</a>. Open source under GPL-3.0. Clock checks are saved in this browser only.</p>
   </footer>
 
   <script type="module" src="app.js"></script>

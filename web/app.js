@@ -175,9 +175,9 @@ $("#btn-connect").addEventListener("click", async () => {
     showStartError(err.name === "NotAllowedError" || err.name === "SecurityError"
       ? embedded
         ? "This embedded copy isn't allowed to use the microphone. Open the full page, or if this is your site, add allow=\"microphone\" to the embed code. The demo and WAV analysis still work here."
-        : "Microphone access was blocked. Allow it in the address bar, then select Connect pickup again."
+        : "Microphone access was blocked. Allow it in your browser settings or the address bar, then select Start with my mic again."
       : err.name === "NotFoundError"
-        ? "No audio input found. Plug in the pickup or USB sound card, then select Connect pickup again."
+        ? "No microphone found. Plug in a mic or pickup, then select Start with my mic again."
         : `Couldn't open the audio input: ${err.message}`);
   }
 });
@@ -185,7 +185,7 @@ $("#btn-connect").addEventListener("click", async () => {
 $("#btn-demo").addEventListener("click", () => {
   startDemo();
   state.cal = { method: "demo", ppm: 0 };
-  setStatus("Simulated pickup, no calibration needed", "warn");
+  setStatus("Simulated watch, no clock check needed", "warn");
   setBanner("Demo mode: readings come from a simulated watch running +6.2 s/d, 274 deg, 0.4 ms.", "sim");
   startMeasuring();
 });
@@ -292,7 +292,7 @@ $("#btn-step2").addEventListener("click", () => {
   state.wizardChannel = wiz.channel;
   $("#signal-hint").textContent = wiz.method === "pps"
     ? "Connect the GPS module's 1 PPS output to input 2 and wait for a position fix."
-    : "Place the quartz watch on the pickup, crown facing the same way you'll test watches.";
+    : "Place the quartz watch on the mic or pickup, the same way you'll place watches you test.";
   if (wiz.method === "clock") {
     // No reference signal to check: go straight to the timed run.
     keepAwake(true);
@@ -350,7 +350,7 @@ function startClockRun() {
   $("#cal-ppm").textContent = "measuring";
   $("#cal-spread").textContent = "measuring";
   $("#cal-progress").style.width = "0%";
-  $("#cal-note").textContent = "Keep this page open with the screen on. Nothing needs to be on the pickup.";
+  $("#cal-note").textContent = "Keep this page open with the screen on. Nothing needs to be on the mic.";
   state.sink = (c0, c1, frame, wallMs) => {
     if (frame === undefined || wallMs === undefined) return;
     tr.add(frame, wallMs);
@@ -369,7 +369,7 @@ function startClockRun() {
       ? "This page was in the background for a while. That's handled, but keep it open and the screen on so the run finishes."
       : ev.duration >= needed && !ev.stable
         ? "Long enough, waiting for the reading to settle. The device's network time may have been corrected during the run."
-        : "Keep this page open with the screen on. Nothing needs to be on the pickup.";
+        : "Keep this page open with the screen on. Nothing needs to be on the mic.";
     if (ev.valid) finishCalibration({ ...ev, pulses: ev.pulses });
   };
 }
@@ -394,7 +394,7 @@ function startCalibrationRun() {
     const lastPulse = tr.positions[tr.positions.length - 1];
     const gap = lastPulse === undefined ? total : (tr.ring.total - lastPulse) / sr;
     $("#cal-note").textContent = gap > 5
-      ? "No reference pulse for over 5 seconds. Check the watch on the pickup or the GPS cable."
+      ? "No reference pulse for over 5 seconds. Check the quartz watch on the mic or the GPS cable."
       : ev.duration >= needed && !ev.stable
         ? "Long enough, waiting for the reading to hold within 0.5 ppm. Keep the bench still."
         : tr.dropouts > Math.max(5, total / 15)
@@ -452,7 +452,7 @@ function clearReadouts() {
   $("#r-rate").textContent = "--";
   $("#r-amp").textContent = "--";
   $("#r-be").textContent = "--";
-  $("#r-meta").textContent = "Listening. Place the watch on the pickup.";
+  $("#r-meta").textContent = "Listening. Place the watch on the mic or pickup.";
   $("#q-meter").style.width = "0%";
   $("#q-text").textContent = "--";
 }
@@ -509,7 +509,7 @@ $("#btn-reset").addEventListener("click", () => {
   draw();
 });
 $("#btn-recal").addEventListener("click", () => {
-  if (state.dev?.demo) { setBanner("The demo uses a simulated pickup, so there's nothing to calibrate. Connect a pickup to calibrate a real input.", "sim"); return; }
+  if (state.dev?.demo) { setBanner("The demo uses a simulated watch, so there's nothing to check. Select Change input, then Start with my mic to use a real one.", "sim"); return; }
   wiz.forced = true;
   openWizard();
   wiz.forced = true;
