@@ -2,7 +2,20 @@
 
 Free, open-source timegrapher for mechanical watches. Measures **rate (s/d)**, **amplitude (deg)** and **beat error (ms)** from any USB audio pickup, on Windows, macOS and Linux.
 
-> Status: **Phase 1, engine only.** The measurement engine, mandatory sound card calibration and a command line tool work and are tested. Live capture and the desktop UI come next.
+> Status: **Phase 1.** The measurement engine, mandatory sound card calibration, a command line tool and a **browser app with live capture** work and are tested. Real-watch validation is next.
+
+## Web app
+
+`web/` is a complete timegrapher that runs in the browser: live pickup input, the guided calibration wizard (quartz or GPS 1 PPS), live rate, amplitude and beat error, Diagram, Trend and Scope views, and WAV file analysis. It's static files only, so it can be hosted anywhere with HTTPS. See [docs/DEPLOY-WEB.md](docs/DEPLOY-WEB.md) to put it on GitHub Pages and your own site.
+
+Run it locally:
+
+```bash
+cd web && python3 -m http.server 8000
+# open http://localhost:8000 (localhost counts as secure, so the mic works)
+```
+
+`web/engine.js` is a line-for-line JavaScript port of the Python engine and passes the same accuracy gate (`node --test web/test/*.test.mjs`). It also survives audio dropouts: a sudden timing jump starts a new segment instead of corrupting the reading or the calibration.
 
 ## Why calibration is mandatory
 
@@ -55,7 +68,7 @@ Beat rate is auto-detected (14,400 to 43,200 A/h) or set with `--bph`.
 
 ## Accuracy so far (synthetic signals)
 
-All 23 tests pass, and a randomized sweep (`python tools/sweep.py 80`) lands 80/80 cases inside the Phase 1 gate of 1 s/d, 0.1 ms and 5 deg. The cases cover 18,000 to 36,000 A/h, rates of plus or minus 60 s/d, beat error 0 to 2 ms, amplitude 160 to 320 deg and heavy noise. Real-watch validation against a reference timegrapher is the next gate.
+All 23 Python tests and 13 JavaScript tests pass, and a randomized sweep (`python tools/sweep.py 80`) lands 80/80 cases inside the Phase 1 gate of 1 s/d, 0.1 ms and 5 deg. The cases cover 18,000 to 36,000 A/h, rates of plus or minus 60 s/d, beat error 0 to 2 ms, amplitude 160 to 320 deg and heavy noise. Real-watch validation against a reference timegrapher is the next gate.
 
 ## Layout
 
@@ -69,6 +82,8 @@ src/opentimegrapher/
   export/       CSV and PDF (Phase 3)
   synth.py      test signal generator
   cli.py        otg command
+web/            browser app (index.html, app.js, engine.js, worklet.js, styles.css)
+web/test/       engine tests for Node
 tests/          pytest suite, tests/fixtures/ for real recordings
 tools/sweep.py  randomized accuracy sweep
 docs/SPEC.md    project spec

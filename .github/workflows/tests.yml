@@ -15,3 +15,11 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest -q
       - run: python tools/sweep.py 30
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test web/test/*.test.mjs

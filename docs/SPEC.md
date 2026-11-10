@@ -9,7 +9,8 @@ The full working spec (features, clean-room rules, hardware, DSP math, display m
 - [x] Rate, beat error, amplitude engine with rolling windows (feeds Vario and Trace)
 - [x] Mandatory calibration: quartz and GPS 1 PPS methods, per device and sample rate, 30-day prompt, flagged manual override
 - [x] CLI: otg synth / calibrate / analyze
-- [ ] Live capture (sounddevice)
-- [ ] Guided calibration wizard UI
-- [ ] Diagram mode UI
+- [x] Web app: live capture, guided calibration wizard, Diagram, Trend and Scope views, WAV analysis
+- [x] Audio dropout handling (segmented fits) in the web engine
+- [ ] Port dropout handling back to the Python engine
+- [ ] Desktop capture (sounddevice) for the Python app, if still wanted
 - [ ] Gate: within 1 s/d, 0.1 ms, 5 deg of a reference timegrapher on 3 real watches

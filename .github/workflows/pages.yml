@@ -1,0 +1,37 @@
+# Publishes the web app in web/ to GitHub Pages on every push to main.
+# One-time setup: repo Settings > Pages > Source: GitHub Actions.
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test the engine before publishing
+        run: node --test web/test/*.test.mjs
+      - name: Stage site files
+        run: |
+          mkdir _site
+          cp web/index.html web/styles.css web/app.js web/engine.js web/worklet.js _site/
+          [ -f web/CNAME ] && cp web/CNAME _site/ || true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenTimegrapher</title>
+  <meta name="description" content="Free timegrapher for mechanical watches. Measures rate, amplitude and beat error from a USB pickup, right in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2713%27 fill=%27none%27 stroke=%27%2323282e%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274%27 fill=%27%23b3122e%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="mark" href="./">OpenTimegrapher</a>
+    <div class="status" id="status" hidden>
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text"></span>
+    </div>
+  </header>
+
+  <div class="banner warn" id="banner" hidden>
+    <span id="banner-text"></span>
+    <button class="link" id="banner-action" hidden>Recalibrate</button>
+  </div>
+
+  <main>
+    <!-- Start -->
+    <section class="screen" id="screen-start">
+      <div class="start">
+        <h1>Time your watch on the bench.</h1>
+        <p class="lede">Rate, amplitude and beat error from a piezo pickup or microphone. Everything runs in this browser tab, nothing is uploaded.</p>
+        <div class="actions">
+          <button class="primary" id="btn-connect">Connect pickup</button>
+          <button class="secondary" id="btn-demo">Try the demo</button>
+        </div>
+        <p class="fine">Your sound card's clock is checked before the first measurement. It takes about 10 minutes with a quartz watch, or 1 minute with a GPS timing signal.</p>
+        <p class="error" id="start-error" role="alert" hidden></p>
+      </div>
+    </section>
+
+    <!-- Calibration wizard -->
+    <section class="screen" id="screen-wizard" hidden>
+      <div class="wizard">
+        <h2>Calibrate your sound card</h2>
+        <p class="lede">Every 1 ppm of clock error is 0.09 s/d of rate error, so measuring stays locked until this is done for this input.</p>
+        <ol class="steps" id="steps">
+          <li data-step="1">Input</li><li data-step="2">Reference</li><li data-step="3">Signal</li><li data-step="4">Measure</li><li data-step="5">Save</li>
+        </ol>
+
+        <div class="step" id="step-1">
+          <label for="device">Audio input</label>
+          <select id="device"></select>
+          <p class="fine" id="device-info"></p>
+          <div class="actions"><button class="primary" id="btn-step1">Use this input</button></div>
+        </div>
+
+        <div class="step" id="step-2" hidden>
+          <fieldset>
+            <legend>Reference</legend>
+            <label class="choice"><input type="radio" name="method" value="quartz" checked>
+              <span><strong>Quartz watch</strong>Any quartz watch on the pickup. At least 10 minutes.</span></label>
+            <label class="choice" id="choice-pps"><input type="radio" name="method" value="pps">
+              <span><strong>GPS 1 PPS</strong><span id="pps-note">GPS module pulse output into input 2. About 1 minute.</span></span></label>
+          </fieldset>
+          <div id="quartz-offset-row">
+            <label for="ref-offset">Quartz watch rate, if known (s/d)</label>
+            <input id="ref-offset" type="number" step="0.01" value="0" inputmode="decimal">
+            <p class="fine">Leave at 0 if you don't know it. A typical quartz watch is within about 0.5 s/d.</p>
+          </div>
+          <details class="advanced">
+            <summary>Advanced: enter a correction by hand</summary>
+            <p class="fine">Only if you measured this sound card elsewhere. Every result will be flagged.</p>
+            <label for="manual-ppm">Correction (ppm)</label>
+            <input id="manual-ppm" type="number" step="0.01" inputmode="decimal">
+            <div class="actions"><button class="secondary" id="btn-manual">Use manual correction</button></div>
+          </details>
+          <div class="actions"><button class="secondary" id="btn-back2">Back</button><button class="primary" id="btn-step2">Continue</button></div>
+        </div>
+
+        <div class="step" id="step-3" hidden>
+          <p id="signal-hint">Place the quartz watch on the pickup, crown facing the same way you'll test watches.</p>
+          <div class="meter" aria-hidden="true"><div class="meter-fill" id="meter"></div></div>
+          <p class="readline"><span id="pulse-count">0</span> reference pulses heard in the last 5 s</p>
+          <div class="actions"><button class="secondary" id="btn-back3">Back</button><button class="primary" id="btn-step3" disabled>Start calibration</button></div>
+        </div>
+
+        <div class="step" id="step-4" hidden>
+          <div class="progress" aria-hidden="true"><div class="progress-fill" id="cal-progress"></div></div>
+          <dl class="calgrid">
+            <div><dt>Elapsed</dt><dd id="cal-elapsed">0:00</dd></div>
+            <div><dt>Correction</dt><dd id="cal-ppm">measuring</dd></div>
+            <div><dt>Stability</dt><dd id="cal-spread">measuring</dd></div>
+          </dl>
+          <p class="fine" id="cal-note">Keep the bench still. The run finishes on its own once the reading has held steady long enough.</p>
+          <div class="actions"><button class="secondary" id="btn-cancel4">Cancel</button></div>
+        </div>
+
+        <div class="step" id="step-5" hidden>
+          <p class="big" id="cal-result"></p>
+          <p class="fine" id="cal-result-detail"></p>
+          <div class="actions"><button class="primary" id="btn-save">Save and start measuring</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Measure -->
+    <section class="screen" id="screen-measure" hidden>
+      <div class="readouts" role="group" aria-label="Live readings">
+        <div class="readout"><span class="label">Rate</span><span class="value" id="r-rate">--</span><span class="unit">s/d</span></div>
+        <div class="readout"><span class="label">Amplitude</span><span class="value" id="r-amp">--</span><span class="unit">deg</span></div>
+        <div class="readout"><span class="label">Beat error</span><span class="value" id="r-be">--</span><span class="unit">ms</span></div>
+      </div>
+      <p class="meta" id="r-meta">Listening. Place the watch on the pickup.</p>
+
+      <div class="workbench">
+        <div class="display">
+          <div class="tabs" role="tablist">
+            <button role="tab" aria-selected="true" data-view="diagram">Diagram</button>
+            <button role="tab" aria-selected="false" data-view="trend">Trend</button>
+            <button role="tab" aria-selected="false" data-view="scope">Scope</button>
+          </div>
+          <canvas id="view" aria-label="Measurement display"></canvas>
+          <p class="legend" id="legend"><span class="key tick"></span>tick <span class="key tock"></span>tock</p>
+        </div>
+
+        <aside class="controls">
+          <div class="field"><label for="bph">Beat rate</label>
+          <select id="bph">
+            <option value="">Auto</option>
+            <option>14400</option><option>18000</option><option>19800</option><option>21600</option>
+            <option>25200</option><option>28800</option><option>36000</option><option>43200</option>
+          </select></div>
+          
+          <div class="field"><label for="lift">Lift angle (deg)</label>
+          <input id="lift" type="number" min="10" max="90" step="0.5" value="52"></div>
+          
+          <div class="field"><label for="avg">Averaging</label>
+          <select id="avg">
+            <option value="4">4 s</option><option value="10" selected>10 s</option>
+            <option value="30">30 s</option><option value="60">60 s</option><option value="Infinity">Since reset</option>
+          </select></div>
+          
+          <div class="field"><label for="speed">Diagram span</label>
+          <select id="speed"><option value="15">15 s</option><option value="30" selected>30 s</option><option value="120">2 min</option></select></div>
+          
+          <div class="stack">
+            <button class="secondary" id="btn-reset">Reset readings</button>
+            <button class="secondary" id="btn-recal">Recalibrate</button>
+            <button class="secondary" id="btn-input">Change input</button>
+          </div>
+          <div class="quality">
+            <span class="label">Signal</span>
+            <div class="meter small" aria-hidden="true"><div class="meter-fill" id="q-meter"></div></div>
+            <span id="q-text">--</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <details class="filebox" id="filebox">
+      <summary>Analyze a WAV recording</summary>
+      <div class="filegrid">
+        <div>
+          <label for="file">Recording</label>
+          <input type="file" id="file" accept=".wav,audio/wav">
+        </div>
+        <div>
+          <label for="file-cal">Recorded with</label>
+          <select id="file-cal"></select>
+        </div>
+        <div>
+          <label for="file-lift">Lift angle (deg)</label>
+          <input type="number" id="file-lift" value="52" step="0.5">
+        </div>
+      </div>
+      <p class="readline" id="file-result" aria-live="polite"></p>
+    </details>
+  </main>
+
+  <footer class="foot">
+    <p>Free and open source under GPL-3.0. Calibration is stored in this browser only.</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
